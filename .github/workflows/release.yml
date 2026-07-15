@@ -3,7 +3,11 @@ name: Build and Release Theme
 on:
   push:
     branches:
-      - main
+      - "*" # Trigger on pushes to all branches
+  pull_request:
+    branches:
+      - "*" # Trigger on pull requests to all branches
+  workflow_dispatch: # Allows manual triggering of the workflow
 
 permissions: write-all
 
