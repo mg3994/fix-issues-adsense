@@ -224,53 +224,55 @@ final ldLocalBusinessSchema = Script(
 final ldProfessionalServiceSchema = Script(
   type: "application/ld+json",
   childrenz: [
-    Text('\n{\n'
-        '  "@context": "https://schema.org",\n'
-        '  "@type": "ProfessionalService",\n'
-        '  "name": "'),
+    Text(r'''
+{
+  "@context": "https://schema.org",
+  "@type": "ProfessionalService",
+  "name": "'''),
     BData(value: 'blog.title'),
-    Text('",\n'
-        '  "image": "'),
+    Text(r'''",
+  "image": "'''),
     BData(value: 'blog.blogspotFaviconUrl'),
-    Text('",\n'
-        '  "@id": "'),
+    Text(r'''",
+  "@id": "'''),
     BData(value: 'blog.canonicalHomepageUrl'),
-    Text('",\n'
-        '  "url": "'),
+    Text(r'''",
+  "url": "'''),
     BData(value: 'blog.canonicalHomepageUrl'),
-    Text('",\n'
-        '  "telephone": "+919813954763",\n'
-        '  "priceRange": "\$\$",\n'
-        '  "address": {\n'
-        '    "@type": "PostalAddress",\n'
-        '    "streetAddress": "VijayPal Gautam Village Todi",\n'
-        '    "addressLocality": "Charkhi Dadri",\n'
-        '    "addressRegion": "Haryana",\n'
-        '    "postalCode": "127312",\n'
-        '    "addressCountry": "IN"\n'
-        '  },\n'
-        '  "geo": {\n'
-        '    "@type": "GeoCoordinates",\n'
-        '    "latitude": 28.5920617,\n'
-        '    "longitude": 76.2652909\n'
-        '  },\n'
-        '  "openingHoursSpecification": {\n'
-        '    "@type": "OpeningHoursSpecification",\n'
-        '    "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],\n'
-        '    "opens": "00:00",\n'
-        '    "closes": "23:59"\n'
-        '  },\n'
-        '  "sameAs": [\n'
-        '    "https://www.facebook.com/profile.php?id=100080805714776",\n'
-        '    "https://www.instagram.com/antinna.yt/",\n'
-        '    "https://youtube.com/antinna",\n'
-        '    "https://github.com/antinna",\n'
-        '    "https://play.google.com/store/apps/dev?id=7417258411166270372",\n'
-        '    "'),
+    Text(r'''",
+  "telephone": "+919813954763",
+  "priceRange": "$$",
+  "address": {
+    "@type": "PostalAddress",
+    "streetAddress": "VijayPal Gautam Village Todi",
+    "addressLocality": "Charkhi Dadri",
+    "addressRegion": "Haryana",
+    "postalCode": "127312",
+    "addressCountry": "IN"
+  },
+  "geo": {
+    "@type": "GeoCoordinates",
+    "latitude": 28.5920617,
+    "longitude": 76.2652909
+  },
+  "openingHoursSpecification": {
+    "@type": "OpeningHoursSpecification",
+    "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],
+    "opens": "00:00",
+    "closes": "23:59"
+  },
+  "sameAs": [
+    "https://www.facebook.com/profile.php?id=100080805714776",
+    "https://www.instagram.com/antinna.yt/",
+    "https://youtube.com/antinna",
+    "https://github.com/antinna",
+    "https://play.google.com/store/apps/dev?id=7417258411166270372",
+    "'''),
     BData(value: 'blog.canonicalHomepageUrl'),
-    Text('"\n'
-        '  ]\n'
-        '}\n'),
+    Text(r'''"
+  ]
+}
+'''),
   ],
 );
 
@@ -1809,16 +1811,6 @@ class BloggerBody extends Component {
 
 void main() {
   final theme = BloggerTheme(
-    attributes: {
-      'b:layoutsVersion': '3',
-      'b:responsive': 'true',
-      'expr:dir': 'data:blog.languageDirection',
-      'expr:lang': 'data:blog.locale',
-      'xmlns': 'http://www.w3.org/1999/xhtml',
-      'xmlns:b': 'http://www.google.com/2005/gml/b',
-      'xmlns:data': 'http://www.google.com/2005/gml/data',
-      'xmlns:expr': 'http://www.google.com/2005/gml/expr',
-    },
     head: [
       const BloggerHead(),
     ],
