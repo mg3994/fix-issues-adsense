@@ -3,7 +3,7 @@ import 'package:blogger_theme/blogger_theme.dart';
 final firebase_and_toast = Script(
   type: "module",
   contentInCDATA: true,
-  content: r''' import {
+  content: r'''import {
       initializeApp,
       getApps,
     } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-app.js";
@@ -15,6 +15,8 @@ final firebase_and_toast = Script(
       signOut,
       setPersistence,
       browserLocalPersistence,
+      RecaptchaVerifier,
+      linkWithPhoneNumber,
     } from "https://www.gstatic.com/firebasejs/11.6.1/firebase-auth.js";
     import {
       getMessaging,
@@ -49,13 +51,18 @@ final firebase_and_toast = Script(
       ? initializeApp(firebaseConfig)
       : getApps()[0];
     const auth = getAuth(app);
+    window.firebaseAuth = auth; // Expose for linking
+    window.RecaptchaVerifier = RecaptchaVerifier;
+    window.linkWithPhoneNumber = linkWithPhoneNumber;
 
     // Set persistence to LOCAL so session is remembered
-    try {
-      await setPersistence(auth, browserLocalPersistence);
-    } catch (e) {
-      console.warn("Set persistence failed:", e);
-    }
+    (async () => {
+        try {
+          await setPersistence(auth, browserLocalPersistence);
+        } catch (e) {
+          console.warn("Set persistence failed:", e);
+        }
+    })();
 
     const provider = new GoogleAuthProvider();
 
@@ -142,7 +149,16 @@ final firebase_and_toast = Script(
     async function updateWindowAuthData(user, deviceToken = null) {
       window.isLoggedIn = !!user;
       window.firebaseUid = user ? user.uid : null;
+
+      let linkedPhoneNumber = null;
       if (user) {
+          linkedPhoneNumber = user.phoneNumber;
+          if (!linkedPhoneNumber && user.providerData) {
+            const providerMatch = user.providerData.find(info => info.phoneNumber);
+            if (providerMatch) linkedPhoneNumber = providerMatch.phoneNumber;
+          }
+          window.hasPhoneLinked = !!linkedPhoneNumber;
+
         try {
           window.firebaseAuthToken = await user.getIdToken();
         } catch (e) {
@@ -151,7 +167,9 @@ final firebase_and_toast = Script(
         }
       } else {
         window.firebaseAuthToken = null;
+        window.hasPhoneLinked = false;
       }
+
       if (deviceToken) {
         window.firebaseRemoteDeviceToken = deviceToken;
       } else if (!user) {
@@ -160,6 +178,7 @@ final firebase_and_toast = Script(
       console.log("Updated global auth window variables:", {
         isLoggedIn: window.isLoggedIn,
         firebaseUid: window.firebaseUid,
+        hasPhoneLinked: window.hasPhoneLinked,
         firebaseAuthToken: window.firebaseAuthToken ? "EXISTS" : null,
         firebaseRemoteDeviceToken: window.firebaseRemoteDeviceToken
       });
@@ -303,6 +322,7 @@ final firebase_and_toast = Script(
         }
       }
     }
+    window.handleLogin = handleLogin;
 
     /**
      * Terminate active validation container context
@@ -328,6 +348,7 @@ final firebase_and_toast = Script(
         showToast("Failed to safely terminate session data flow.", "error");
       }
     }
+    window.handleLogout = handleLogout;
 
     /**
      * Copy User Unique ID context string buffer to clipboard securely
@@ -483,5 +504,5 @@ final firebase_and_toast = Script(
       renderAuthState(user);
       await updateWindowAuthData(user);
       autoSyncDeviceSession(user);
-    });  ''',
+    });''',
 );
