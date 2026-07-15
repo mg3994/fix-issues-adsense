@@ -808,6 +808,219 @@ html.dark .bottom-nav-item a:not(.active) .bottom-nav-icon-dot {
 }
 
 
+/* ==========================================================================
+   LIQUID GLASS FLOATING HAMBURGER & INDEED-STYLE SEARCH LAYOUT
+   ========================================================================== */
+.btn-hamburger-floating {
+  position: fixed;
+  top: 15px;
+  left: 15px;
+  width: 48px;
+  height: 48px;
+  border-radius: 50%;
+  background: rgba(255, 255, 255, 0.15);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border: 1px solid rgba(255, 255, 255, 0.25);
+  box-shadow: 0 8px 32px 0 rgba(31, 38, 135, 0.15);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--text-main);
+  font-size: 1.5rem;
+  cursor: pointer;
+  z-index: 1001;
+  transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+}
+.btn-hamburger-floating:hover {
+  background: rgba(255, 255, 255, 0.25);
+  transform: scale(1.08);
+}
+html.dark .btn-hamburger-floating {
+  background: rgba(15, 23, 42, 0.3);
+  border-color: rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+}
+
+@media (min-width: 993px) {
+  .btn-hamburger-floating {
+    display: none !important;
+  }
+}
+
+/* Snappy / Sticky Navigation Styles */
+.nav {
+  position: sticky;
+  top: 0;
+  z-index: 100;
+  background-color: var(--bg-surface);
+  border-bottom: 1px solid var(--border-ui);
+  transition: all 0.2s ease;
+  box-shadow: var(--shadow);
+}
+.nav-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 10px 20px;
+  gap: 20px;
+}
+
+.brand {
+  font-size: 1.4rem;
+  font-weight: 800;
+  color: var(--color-accent);
+  text-decoration: none;
+  flex-shrink: 0;
+}
+
+/* Enhanced Search Header (Indeed Style) */
+.header-center-search {
+  flex: 1;
+  max-width: 800px;
+}
+.search-form-v2 {
+  display: flex;
+  align-items: center;
+  background: var(--bg-app);
+  border-radius: 12px;
+  padding: 4px;
+  box-shadow: 0 2px 8px rgba(0,0,0,0.05);
+  border: 1px solid var(--border-ui);
+  transition: all 0.2s;
+}
+.search-form-v2:focus-within {
+  border-color: var(--color-accent);
+  box-shadow: 0 4px 12px rgba(230, 126, 34, 0.15);
+}
+
+.search-input-group {
+  flex: 1;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 0 15px;
+  position: relative;
+  cursor: text;
+}
+.search-input-v2 {
+  border: none;
+  background: transparent;
+  padding: 12px 0;
+  width: 100%;
+  outline: none;
+  font-size: 0.95rem;
+  font-weight: 600;
+  color: var(--text-main);
+}
+.search-icon-v2 {
+  color: var(--text-muted);
+  flex-shrink: 0;
+  display: flex;
+  align-items: center;
+}
+.search-icon-v2 svg {
+  width: 20px;
+  height: 20px;
+  fill: currentColor;
+}
+
+.search-divider {
+  width: 1px;
+  height: 30px;
+  background: var(--border-ui);
+  flex-shrink: 0;
+}
+
+.search-btn-v2 {
+  background: var(--color-accent);
+  color: #fff;
+  border: none;
+  padding: 10px 25px;
+  border-radius: 10px;
+  font-weight: 800;
+  cursor: pointer;
+  transition: all 0.2s;
+  font-size: 0.9rem;
+  margin-left: 5px;
+}
+.search-btn-v2:hover {
+  background: var(--color-accent-hover, #d35400);
+  transform: translateY(-1px);
+}
+
+/* Category Bar */
+.cat-bar {
+  background: var(--bg-surface);
+  border-top: 1px solid var(--border-ui);
+  padding: 10px 0;
+  overflow-x: auto;
+  white-space: nowrap;
+  scrollbar-width: none;
+}
+.cat-bar::-webkit-scrollbar {
+  display: none;
+}
+.cat-inner {
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 20px;
+  display: flex;
+  gap: 15px;
+}
+.cat-link {
+  text-decoration: none;
+  color: var(--text-muted);
+  font-size: 0.85rem;
+  font-weight: 600;
+  padding: 6px 15px;
+  border-radius: 20px;
+  background: var(--bg-app);
+  transition: all 0.2s;
+}
+.cat-link:hover, .cat-link.active {
+  background: var(--color-accent);
+  color: #fff;
+}
+
+/* Responsive Header Logic */
+@media (max-width: 768px) {
+  .nav-inner {
+    padding: 10px 15px;
+    gap: 10px;
+  }
+  .brand {
+    display: none;
+  }
+  .search-form-v2 {
+    flex-direction: column;
+    align-items: stretch;
+    border-radius: 15px;
+    gap: 0;
+    padding: 5px;
+  }
+  .search-divider {
+    display: none;
+  }
+  .search-input-group {
+    padding: 10px 15px;
+    border-bottom: 1px solid var(--border-ui);
+  }
+  .search-input-group:last-of-type {
+    border-bottom: none;
+  }
+  .search-btn-v2 {
+    margin: 5px 0 0;
+    width: 100%;
+    padding: 15px;
+  }
+  .search-input-v2 {
+    padding: 8px 0;
+  }
+}
+
 ''', variables: bskin_variables);
 
 
