@@ -1,0 +1,9 @@
+name: hireflutter_theme
+description: A modern, AdSense-compliant Blogger theme generator for hireflutter.uk using blogger_theme package.
+version: 1.0.0
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+
+dependencies:
+  blogger_theme: ^3.0.0
+  path: ^1.8.0

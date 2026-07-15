@@ -1,0 +1,7 @@
+# Package-related artifacts
+.dart_tool/
+.packages
+pubspec.lock
+
+# Build outputs
+theme.xml
