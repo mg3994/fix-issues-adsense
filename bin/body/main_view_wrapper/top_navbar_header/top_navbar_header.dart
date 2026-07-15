@@ -19,17 +19,8 @@ final top_navbar_header = BSection(
               attributes: {'class': 'nav'},
               children: [
                 Div(
-                  attributes: {'class': 'nav-inner'},
+                  attributes: {'class': 'nav-inner', 'style': 'justify-content: center;'},
                   children: [
-                    A(
-                      attributes: {
-                        'class': 'brand',
-                        'expr:href': 'data:blog.homepageUrl'
-                      },
-                      children: [
-                        BData(value: 'blog.title')
-                      ],
-                    ),
                     Div(
                       attributes: {'class': 'header-center-search'},
                       children: [
