@@ -1,235 +1,420 @@
 import 'package:blogger_theme/blogger_theme.dart';
 import 'dart:io';
 
-void main() {
-  // Let's design a top-tier, highly optimized, AdSense compliant Blogger Theme.
-  // We will build components using blogger_theme's declarative API and output to 'theme.xml'.
+// ==========================================================================
+// 1. DART DECORATIVE VARIABLES & COMPONENT DEFINITIONS FOR BLOGGER HEAD (SEO, CSS, SCRIPTS)
+// ==========================================================================
 
-  final theme = BloggerTheme(
-    attributes: {
-      'b:layoutsVersion': '3',
-      'b:responsive': 'true',
-      'expr:dir': 'data:blog.languageDirection',
-      'expr:lang': 'data:blog.locale',
-      'xmlns': 'http://www.w3.org/1999/xhtml',
-      'xmlns:b': 'http://www.google.com/2005/gml/b',
-      'xmlns:data': 'http://www.google.com/2005/gml/data',
-      'xmlns:expr': 'http://www.google.com/2005/gml/expr',
-    },
-    head: [
-      // Schema.org Structured Data
-      RawText(r'''
-<script type='application/ld+json'>{
-  "@context":"http://schema.org",
-  "@type":"WebSite",
-  "name":"<data:blog.title/>",
-  "description": "<data:view.description.escaped/>",
-  "url":"<data:blog.canonicalHomepageUrl/>",
-  "potentialAction":{
-    "@type":"SearchAction",
-    "target":"<data:blog.canonicalHomepageUrl/>search?q={search_term_string}",
-    "query-input":"required name=search_term_string"
-  }
-}</script>
-<script type='application/ld+json'>{
-  "@context": "http://schema.org",
-  "@type": "BreadcrumbList",
-  "@id": "<data:blog.canonicalHomepageUrl/>",
-  "name": "<data:blog.title/>",
-  "itemListElement": [{
-      "@type": "ListItem",
-      "position": 1,
-      "name": "Home",
-      "item": "<data:blog.canonicalHomepageUrl/>"
-      },
-      {
-      "@type": "ListItem",
-      "position": 2,
-      "name": "About",
-      "item": "<data:blog.canonicalHomepageUrl/>p/about-us.html"
-      },
-      {
-      "@type": "ListItem",
-      "position": 3,
-      "name": "Contact Us",
-      "item": "<data:blog.canonicalHomepageUrl/>p/contact-us.html"
-      }
-    ]
-}</script>
-<script type='application/ld+json'>{
-  "@context": "https://schema.org/",
-  "@type": "Person",
-  "name": "<data:blog.title/>",
-  "url": "<data:blog.canonicalHomepageUrl/>",
-  "image": "<data:blog.blogspotFaviconUrl/>",
-  "sameAs": [
-    "https://www.facebook.com/profile.php?id=100080805714776",
-    "https://www.instagram.com/antinna.yt/",
-    "https://youtube.com/antinna",
-    "https://github.com/antinna",
-    "<data:blog.canonicalHomepageUrl/>"
+/// Viewport Related Meta tags
+final metaViewportHead = Meta(
+  attributes: {
+    "content": "width=device-width, initial-scale=1.0",
+    "name": "viewport"
+  },
+);
+
+/// All Blogger Meta tags Auto added by blogger platform
+final metaBloggerAllHeadContentHead = BInclude(name: "all-head-content", data: "blog");
+
+/// Open Graph Meta tags
+final metaOgTypeHead = Meta(
+  attributes: {"property": "og:type", "content": "website"},
+);
+
+final metaGeoRegionHead = Meta(
+  attributes: {"name": "geo.region", "content": "IN-HR"},
+);
+
+final metaContactPhoneHead = Meta(
+  attributes: {"name": "contact.phone", "content": "+919813954763"},
+);
+
+/// Content Rating
+final metaIsAdultContentHead = BIf(cond: "data:blog.adultContent", children: [
+  Meta(
+    attributes: {"name": "rating", "content": "adult"},
+  )
+]);
+
+final metaIsGeneralContentHead = BIf(cond: "!data:blog.adultContent", children: [
+  Meta(
+    attributes: {"name": "rating", "content": "general"},
+  )
+]);
+
+final metaIsGoogleAnalyticsHead = BIf(
+    cond: "data:blog.analyticsAccountNumber",
+    children: [BInclude(name: "google-analytics", data: "blog")]);
+
+final metaSubjectHead = Meta(attributes: {
+  "name": "subject",
+  ...Expr.attr('content', '(data:view.isMultipleItems ? data:blog.pageTitle : data:view.title).escaped'),
+});
+
+final metaIsMetaDescriptionHead = BIf(cond: "data:blog.metaDescription", children: [
+  Meta(attributes: {
+    "name": "description",
+    ...Expr.attr('content', 'data:blog.metaDescription'),
+  })
+]);
+
+/// All Link Related
+final linkHomeHead = Link(
+  attributes: {
+    "expr:href": 'data:blog.homepageUrl.canonical',
+    "expr:title": 'data:messages.home',
+    "rel": 'home',
+  },
+);
+
+final linkSearchHead = Link(
+  attributes: {
+    ...Expr.attr('href', 'data:blog.homepageUrl.canonical path "search"'),
+    "expr:title": 'data:messages.search',
+    "rel": 'search',
+  },
+);
+
+// Alternate mobile link (adds m=1 when not a mobile request and URL is canonical)
+final linkAlternateMobileHead = BTag(
+  name: "link",
+  cond: '!data:blog.isMobileRequest and data:view.url ==  data:view.url.canonical',
+  attributesz: {
+    ...Expr.attr('href', 'data:view.url params {m: 1}'),
+    "media": 'only screen and (max-width: 640px)',
+    'rel': 'alternate',
+  },
+);
+
+final linkImageSrcMultipleItemFirstFeaturedImageHead = BTag(
+  name: "link",
+  cond: 'data:view.isMultipleItems and data:widgets.Blog.first.posts[0].featuredImage',
+  attributesz: {
+    ...Expr.attr('href', 'data:widgets.Blog.first.posts[0].featuredImage resizeImage 1600'),
+    'rel': 'image_src',
+  },
+);
+
+final linkImageSrcSingleItemFeaturedImageHead = BTag(
+  name: 'link',
+  cond: 'data:view.isSingleItem and data:view.featuredImage',
+  attributesz: {
+    ...Expr.attr('href', 'data:view.featuredImage resizeImage 1600'),
+    'rel': 'image_src',
+  },
+);
+
+// ==========================================================================
+// 2. JSON-LD STRUCTURED SCHEMAS (CLEAN DECLARATIVE Dart REPRESENTATIONS)
+// ==========================================================================
+
+// 1. WebSite Schema (Homepage only condition)
+final ldWebSiteSchema = BIf(
+  cond: 'data:view.isHomepage',
+  children: [
+    Script(
+      type: "application/ld+json",
+      childrenz: [
+        Text('\n{\n'
+            '  "@context": "http://schema.org",\n'
+            '  "@type": "WebSite",\n'
+            '  "name": "'),
+        BData(value: 'blog.title'),
+        Text('",\n'
+            '  "description": "'),
+        BData(value: 'view.description.escaped'),
+        Text('",\n'
+            '  "url": "'),
+        BData(value: 'blog.canonicalHomepageUrl'),
+        Text('",\n'
+            '  "potentialAction": {\n'
+            '    "@type": "SearchAction",\n'
+            '    "target": "'),
+        BData(value: 'blog.canonicalHomepageUrl'),
+        Text('search?q={search_term_string}",\n'
+            '    "query-input": "required name=search_term_string"\n'
+            '  }\n'
+            '}\n'),
+      ],
+    ),
   ],
-  "jobTitle": "Flutter Developer",
-  "worksFor": {
-    "@type": "Organization",
-    "name": "<data:blog.title/>"
-  }
-}</script>
-<script type='application/ld+json'>{
-  "@context": "https://schema.org",
-  "@type": "ProfessionalService",
-  "name": "<data:blog.title/>",
-  "image": "<data:blog.blogspotFaviconUrl/>",
-  "@id": "<data:blog.canonicalHomepageUrl/>",
-  "url": "<data:blog.canonicalHomepageUrl/>",
-  "telephone": "+919813954763",
-  "priceRange": "$$",
-  "address": {
-    "@type": "PostalAddress",
-    "streetAddress": "VijayPal Gautam Village Todi",
-    "addressLocality": "Charkhi Dadri",
-    "postalCode": "127312",
-    "addressCountry": "IN"
-  },
-  "geo": {
-    "@type": "GeoCoordinates",
-    "latitude": 28.5920617,
-    "longitude": 76.2652909
-  },
-  "openingHoursSpecification": {
-    "@type": "OpeningHoursSpecification",
-    "dayOfWeek": [
-      "Monday",
-      "Tuesday",
-      "Wednesday",
-      "Thursday",
-      "Friday",
-      "Saturday",
-      "Sunday"
-    ],
-    "opens": "00:00",
-    "closes": "23:59"
-  },
-   "sameAs": [
-    "https://www.facebook.com/profile.php?id=100080805714776",
-    "https://www.instagram.com/antinna.yt/",
-    "https://youtube.com/antinna",
-    "https://github.com/antinna",
-    "<data:blog.canonicalHomepageUrl/>"
-  ]
-}</script>
-<script type='application/ld+json'>{
-  "@context": "https://schema.org",
-  "@type": "Project",
-  "name": "<data:blog.title/>",
-  "url": "<data:blog.canonicalHomepageUrl/>",
-  "logo": "<data:blog.blogspotFaviconUrl/>",
-  "contactPoint": [
-    {
-      "@type": "ContactPoint",
-      "telephone": "+919729323674",
-      "contactType": "technical support",
-      "areaServed": ["US","GB","CA","AF","ZM","YE","ZW","VN","VE","AX","AL","DZ","AS","AD","AO","AQ","AI","AG","AW","AM","AR","AT","AU","AZ","BS","BH","BD","BB","BY","BE","BZ","BJ","BM","BT","BO","BQ","BA","BW","VA","VU","UZ","UY","UM","AE","UA","TV","VI","UG","TC","TT","TN","TR","TM","TG","TK","TO","TH","TZ","TJ","TW","CH","SY","SE","BR","BV","IO","VG","BN","BG","BF","BI","KH","CM","CV","KY","CF","TD","CL","CX","CN","CC","CO","KM","CK","HR&quot;","CR","CU","CW","CY","CZ","CD","DK","DJ","DM","DO","TL","EG","SV","EC","GQ","EE","ER","ET","FK","FO","FJ","FI","FR","PF","TF","GA","GM","SZ","SR","SJ","SD","SS","ES","LK","KR","GS","ZA","SO","SB","SI","SK","SG","SX","SL","SC","SN","SA","RS","PM","VC","SM","WS","ST","GE","DE","GH","GI","GR","GL","GD","GP","GT","MF","LC","BL","SH","KN","RW","RO","RU","RE","CG","PT","PL","PR","QA","PH","PN","GN","GG","GU","GW","GY","HT","HM","HN","HK","HU","IS","ID","IN","IR","IQ","IE","IM","IT","IL","JP","JO","JM","JE","CI","KW","KG","LA","XK","KI","KE","KZ","LV","LB","LS","LY","LR","LT","LU","LI","PY","PE","PG","PA","PW","PS","PK","NO","OM","MP","KP","NI","NE","NG","NU","NF","NZ","NA","NP","NL","NR","NC","MM","MZ","MS","MN","ME","MA","MD","MC","FM","MX","MR","MU","YT","MQ","MH&quot;","MV","ML","MT","MW","MG","MY","MO","MK"],
-      "availableLanguage": ["en","Gujarati","Hindi","Tamil","Telugu","Urdu","Panjabi"]
-    },
-    {
-      "@type": "ContactPoint",
-      "telephone": "+919729323674",
-      "contactType": "customer service",
-      "areaServed": ["US","GB","CA","AF","ZM","YE","ZW","VN","VE","AX","AL","DZ","AS","AD","AO","AQ","AI","AG","AW","AM","AR","AT","AU","AZ","BS","BH","BD","BB","BY","BE","BZ","BJ","BM","BT","BO","BQ","BA","BW","VA","VU","UZ","UY","UM","AE","UA","TV","VI","UG","TC","TT","TN","TR","TM","TG","TK","TO","TH","TZ","TJ","TW","CH","SY","SE","BR","BV","IO","VG","BN","BG","BF","BI","KH","CM","CV","KY","CF","TD","CL","CX","CN","CC","CO","KM","CK","HR","CR","CU","CW","CY","CZ","CD","DK","DJ","DM","DO","TL","EG","SV","EC","GQ","EE","ER","ET","FK","FO","FJ","FI","FR","PF","TF","GA","GM","SZ","SR","SJ","SD","SS","ES","LK","KR","GS","ZA","SO","SB","SI","SK","SG","SX","SL","SC","SN","SA","RS","PM","VC","SM","WS","ST","GE","DE","GH","GI","GR","GL","GD","GP","GT","MF","LC","BL","SH","KN","RW","RO","RU","RE","CG","PT","PL","PR","QA","PH","PN","GN","GG","GU","GW","GY","HT","HM","HN","HK","HU","IS","ID","IN","IR","IQ","IE","IM","IT","IL","JP","JO","JM","JE","CI","KW","KG","LA","XK","KI","KE","KZ","LV","LB","LS","LY","LR","LT","LU","LI","PY","PE","PG","PA","PW","PS","PK","NO","OM","MP","KP","NI","NE","NG","NU","NF","NZ","NA","NP","NL","NR","NC","MM","MZ","MS","MN","ME","MA","MD","MC","FM","MX","MR","MU","YT","MQ","MH","MV","ML","MT","MW","MG","MY","MO","MK"],
-      "availableLanguage": ["en","Gujarati","Hindi","Tamil","Telugu","Urdu","Panjabi"]
-    }
+);
+
+// 2. BreadcrumbList Schema
+final ldBreadcrumbSchema = Script(
+  type: "application/ld+json",
+  childrenz: [
+    Text('\n{\n'
+        '  "@context": "http://schema.org",\n'
+        '  "@type": "BreadcrumbList",\n'
+        '  "@id": "'),
+    BData(value: 'blog.canonicalHomepageUrl'),
+    Text('",\n'
+        '  "name": "'),
+    BData(value: 'blog.title'),
+    Text('",\n'
+        '  "itemListElement": [\n'
+        '    {\n'
+        '      "@type": "ListItem",\n'
+        '      "position": 1,\n'
+        '      "name": "Home",\n'
+        '      "item": "'),
+    BData(value: 'blog.canonicalHomepageUrl'),
+    Text('"\n'
+        '    },\n'
+        '    {\n'
+        '      "@type": "ListItem",\n'
+        '      "position": 2,\n'
+        '      "name": "About",\n'
+        '      "item": "'),
+    BData(value: 'blog.canonicalHomepageUrl'),
+    Text('p/about-us.html"\n'
+        '    },\n'
+        '    {\n'
+        '      "@type": "ListItem",\n'
+        '      "position": 3,\n'
+        '      "name": "Contact Us",\n'
+        '      "item": "'),
+    BData(value: 'blog.canonicalHomepageUrl'),
+    Text('p/contact-us.html"\n'
+        '    }\n'
+        '  ]\n'
+        '}\n'),
   ],
-  "sameAs": [
-    "https://www.facebook.com/profile.php?id=100080805714776",
-    "https://www.instagram.com/antinna.yt/",
-    "https://youtube.com/antinna",
-    "https://github.com/antinna",
-    "<data:blog.canonicalHomepageUrl/>"
-  ]
-}</script>
-'''),
-      Meta(attributes: {'content': 'width=device-width, initial-scale=1, minimum-scale=1', 'name': 'viewport'}),
-      RawText('<b:include data=\'blog\' name=\'all-head-content\'/>'),
-      RawText('''
-<b:if cond='!data:blog.adultContent'>
-  <meta content='general' name='rating'/>
-</b:if>
-<b:tag cond='data:view.isMultipleItems and data:widgets.Blog.first.posts[0].featuredImage' expr:href='data:widgets.Blog.first.posts[0].featuredImage resizeImage 1600' name='link' rel='image_src'/>
-<b:tag cond='data:view.isSingleItem and data:view.featuredImage' expr:href='data:view.featuredImage resizeImage 1600' name='link' rel='image_src'/>
-<b:if cond='data:blog.analyticsAccountNumber'>
-  <b:include data='blog' name='google-analytics'/>
-</b:if>
-<meta content='IN-HR' name='geo.region'/>
-<meta content='+919813954763' name='contact.phone'/>
-'''),
-      RawText('''
-<b:if cond='data:blog.pageType in {&quot;index&quot;} and data:blog.pageName == &quot;&quot; and data:blog.homepageUrl != data:blog.url'>
-  <title>All Posts - <data:blog.title/></title>
-</b:if>
-<b:if cond='data:blog.homepageUrl == data:blog.url'>
-  <title><data:blog.pageTitle/></title>
-<b:else/>
-  <b:if cond='data:blog.pageType in {&quot;item&quot;,&quot;static_page&quot;}'>
-    <title><data:blog.pageName/> - <data:blog.title/></title>
-    <meta content='article' property='og:type'/>
-  <b:else/>
-    <b:if cond='data:view.isLabelSearch'>
-      <title>Posts Tagged: <data:blog.searchLabel/> - <data:blog.title/></title>
-    <b:else/>
-      <b:if cond='data:view.isSearch'>
-        <title>Search Results for: <data:blog.searchQuery/> - <data:blog.title/></title>
-      <b:else/>
-        <b:if cond='data:blog.pageType in {&quot;error_page&quot;}'>
-          <title>Page Not Found - <data:blog.title/></title>
-        </b:if>
-      </b:if>
-    </b:if>
-  </b:if>
-</b:if>
-<b:if cond='data:blog.postImageUrl'>
-  <meta expr:content='data:blog.postImageUrl' property='og:image'/>
-<b:else/>
-  <b:if cond='data:blog.postImageThumbnailUrl'>
-    <meta expr:content='data:blog.postImageThumbnailUrl' property='og:image'/>
-  </b:if>
-</b:if>
-<b:if cond='data:blog.metaDescription != &quot;&quot;'>
-  <meta expr:content='data:blog.metaDescription' name='og:description'/>
-</b:if>
-<meta expr:content='data:blog.title' property='og:site_name'/>
-<meta expr:content='data:blog.homepageUrl' name='twitter:domain'/>
-<meta expr:content='data:blog.pageName' name='twitter:title'/>
-<b:if cond='data:blog.postImageUrl'>
-  <meta content='summary_large_image' name='twitter:card'/>
-  <meta expr:content='data:blog.postImageUrl' name='twitter:image'/>
-<b:else/>
-  <meta content='summary' name='twitter:card'/>
-  <b:if cond='data:blog.postImageThumbnailUrl'>
-    <meta expr:content='data:blog.postImageThumbnailUrl' name='twitter:image'/>
-  </b:if>
-</b:if>
-<b:if cond='data:blog.metaDescription'>
-  <meta expr:content='data:blog.metaDescription' name='twitter:description'/>
-</b:if>
-'''),
-      BSkin(
-        '''
-/* --- CSS Resets & Base --- */
-*, *::before, *::after {
-  box-sizing: border-box;
+);
+
+// 3. LocalBusiness Schema
+final ldLocalBusinessSchema = Script(
+  type: "application/ld+json",
+  childrenz: [
+    Text('\n{\n'
+        '  "@context": "https://schema.org",\n'
+        '  "@type": "LocalBusiness",\n'
+        '  "name": "'),
+    BData(value: 'blog.title'),
+    Text('",\n'
+        '  "url": "'),
+    BData(value: 'blog.canonicalHomepageUrl'),
+    Text('",\n'
+        '  "logo": "'),
+    BData(value: 'blog.blogspotFaviconUrl'),
+    Text('",\n'
+        '  "image": "'),
+    BData(value: 'blog.blogspotFaviconUrl'),
+    Text('",\n'
+        '  "sameAs": [\n'
+        '    "https://www.facebook.com/profile.php?id=100080805714776",\n'
+        '    "https://www.youtube.com/antinna",\n'
+        '    "https://www.instagram.com/antinna.yt",\n'
+        '    "https://github.com/antinna",\n'
+        '    "https://play.google.com/store/apps/dev?id=7417258411166270372"\n'
+        '  ],\n'
+        '  "contactPoint": {\n'
+        '    "@type": "ContactPoint",\n'
+        '    "telephone": "+919813954763",\n'
+        '    "contactType": "customer service",\n'
+        '    "email": "contact@antinna.in",\n'
+        '    "availableLanguage": ["en", "hi"]\n'
+        '  }\n'
+        '}\n'),
+  ],
+);
+
+// 4. ProfessionalService Schema
+final ldProfessionalServiceSchema = Script(
+  type: "application/ld+json",
+  childrenz: [
+    Text('\n{\n'
+        '  "@context": "https://schema.org",\n'
+        '  "@type": "ProfessionalService",\n'
+        '  "name": "'),
+    BData(value: 'blog.title'),
+    Text('",\n'
+        '  "image": "'),
+    BData(value: 'blog.blogspotFaviconUrl'),
+    Text('",\n'
+        '  "@id": "'),
+    BData(value: 'blog.canonicalHomepageUrl'),
+    Text('",\n'
+        '  "url": "'),
+    BData(value: 'blog.canonicalHomepageUrl'),
+    Text('",\n'
+        '  "telephone": "+919813954763",\n'
+        '  "priceRange": "\$\$",\n'
+        '  "address": {\n'
+        '    "@type": "PostalAddress",\n'
+        '    "streetAddress": "VijayPal Gautam Village Todi",\n'
+        '    "addressLocality": "Charkhi Dadri",\n'
+        '    "addressRegion": "Haryana",\n'
+        '    "postalCode": "127312",\n'
+        '    "addressCountry": "IN"\n'
+        '  },\n'
+        '  "geo": {\n'
+        '    "@type": "GeoCoordinates",\n'
+        '    "latitude": 28.5920617,\n'
+        '    "longitude": 76.2652909\n'
+        '  },\n'
+        '  "openingHoursSpecification": {\n'
+        '    "@type": "OpeningHoursSpecification",\n'
+        '    "dayOfWeek": ["Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday", "Sunday"],\n'
+        '    "opens": "00:00",\n'
+        '    "closes": "23:59"\n'
+        '  },\n'
+        '  "sameAs": [\n'
+        '    "https://www.facebook.com/profile.php?id=100080805714776",\n'
+        '    "https://www.instagram.com/antinna.yt/",\n'
+        '    "https://youtube.com/antinna",\n'
+        '    "https://github.com/antinna",\n'
+        '    "https://play.google.com/store/apps/dev?id=7417258411166270372",\n'
+        '    "'),
+    BData(value: 'blog.canonicalHomepageUrl'),
+    Text('"\n'
+        '  ]\n'
+        '}\n'),
+  ],
+);
+
+// 5. Project Schema
+final ldProjectSchema = Script(
+  type: "application/ld+json",
+  childrenz: [
+    Text('\n{\n'
+        '  "@context": "https://schema.org",\n'
+        '  "@type": "Project",\n'
+        '  "name": "'),
+    BData(value: 'blog.title'),
+    Text('",\n'
+        '  "url": "'),
+    BData(value: 'blog.canonicalHomepageUrl'),
+    Text('",\n'
+        '  "logo": "'),
+    BData(value: 'blog.blogspotFaviconUrl'),
+    Text('",\n'
+        '  "contactPoint": [\n'
+        '    {\n'
+        '      "@type": "ContactPoint",\n'
+        '      "telephone": "+919729323674",\n'
+        '      "contactType": "Technical Support",\n'
+        '      "areaServed": ["US","GB","CA","AF","ZM","YE","ZW","VN","VE","AX","AL","DZ","AS","AD","AO","AQ","AI","AG","AW","AM","AR","AT","AU","AZ","BS","BH","BD","BB","BY","BE","BZ","BJ","BM","BT","BO","BQ","BA","BW","VA","VU","UZ","UY","UM","AE","UA","TV","VI","UG","TC","TT","TN","TR","TM","TG","TK","TO","TH","TZ","TJ","TW","CH","SY","SE","BR","BV","IO","VG","BN","BG","BF","BI","KH","CM","CV","KY","CF","TD","CL","CX","CN","CC","CO","KM","CK","HR","CR","CU","CW","CY","CZ","CD","DK","DE","GH","GI","GR","GL","GD","GP","GT","MF","LC","BL","SH","KN","RW","RO","RU","RE","CG","PT","PL","PR","QA","PH","PN","GN","GG","GU","GW","GY","HT","HM","HN","HK","HU","IS","ID","IN","IR","IQ","IE","IM","IT","IL","JP","JO","JM","JE","CI","KW","KG","LA","XK","KI","KE","KZ","LV","LB","LS","LY","LR","LT","LU","LI","PY","PE","PG","PA","PW","PS","PK","NO","OM","MP","KP","NI","NE","NG","NU","NF","NZ","NA","NP","NL","NR","NC","MM","MZ","MS","MN","ME","MA","MD","MC","FM","MX","MR","MU","YT","MQ","MH","MV","ML","MT","MW","MG","MY","MO","MK"],\n'
+        '      "availableLanguage": ["en","Gujarati","Hindi","Tamil","Telugu","Urdu","Panjabi"]\n'
+        '    },\n'
+        '    {\n'
+        '      "@type": "ContactPoint",\n'
+        '      "telephone": "+919729323674",\n'
+        '      "contactType": "customer service",\n'
+        '      "areaServed": ["US","GB","CA","AF","ZM","YE","ZW","VN","VE","AX","AL","DZ","AS","AD","AO","AQ","AI","AG","AW","AM","AR","AT","AU","AZ","BS","BH","BD","BB","BY","BE","BZ","BJ","BM","BT","BO","BQ","BA","BW","VA","VU","UZ","UY","UM","AE","UA","TV","VI","UG","TC","TT","TN","TR","TM","TG","TK","TO","TH","TZ","TJ","TW","CH","SY","SE","BR","BV","IO","VG","BN","BG","BF","BI","KH","CM","CV","KY","CF","TD","CL","CX","CN","CC","CO","KM","CK","HR","CR","CU","CW","CY","CZ","CD","DK","DE","GH","GI","GR","GL","GD","GP","GT","MF","LC","BL","SH","KN","RW","RO","RU","RE","CG","PT","PL","PR","QA","PH","PN","GN","GG","GU","GW","GY","HT","HM","HN","HK","HU","IS","ID","IN","IR","IQ","IE","IM","IT","IL","JP","JO","JM","JE","CI","KW","KG","LA","XK","KI","KE","KZ","LV","LB","LS","LY","LR","LT","LU","LI","PY","PE","PG","PA","PW","PS","PK","NO","OM","MP","KP","NI","NE","NG","NU","NF","NZ","NA","NP","NL","NR","NC","MM","MZ","MS","MN","ME","MA","MD","MC","FM","MX","MR","MU","YT","MQ","MH","MV","ML","MT","MW","MG","MY","MO","MK"],\n'
+        '      "availableLanguage": ["en","Gujarati","Hindi","Tamil","Telugu","Urdu","Panjabi"]\n'
+        '    }\n'
+        '  ],\n'
+        '  "sameAs": [\n'
+        '    "https://www.facebook.com/profile.php?id=100082961891641",\n'
+        '    "https://www.instagram.com/antinna.yt/",\n'
+        '    "https://youtube.com/antinna",\n'
+        '    "https://github.com/antinna",\n'
+        '    "https://play.google.com/store/apps/dev?id=7417258411166270372",\n'
+        '    "'),
+    BData(value: 'blog.canonicalHomepageUrl'),
+    Text('"\n'
+        '  ]\n'
+        '}\n'),
+  ],
+);
+
+final ldScriptSchemas = [
+  ldWebSiteSchema,
+  ldBreadcrumbSchema,
+  ldLocalBusinessSchema,
+  ldProfessionalServiceSchema,
+  ldProjectSchema
+];
+
+class BloggerTitle extends Component {
+  const BloggerTitle();
+
+  @override
+  Iterable<Component> build() => [
+    BIf(
+      cond: 'data:blog.homepageUrl == data:blog.url',
+      children: [
+        Title(children: [BData(value: 'blog.pageTitle')]),
+      ],
+    ),
+    BIf(
+      cond: 'data:blog.homepageUrl != data:blog.url and data:blog.pageType in {"item","static_page"}',
+      children: [
+        Title(children: [BData(value: 'blog.pageName'), Text(' - '), BData(value: 'blog.title')]),
+      ],
+    ),
+    BIf(
+      cond: 'data:blog.homepageUrl != data:blog.url and not data:blog.pageType in {"item","static_page"} and data:view.isLabelSearch',
+      children: [
+        Title(children: [Text('Posts Tagged: '), BData(value: 'blog.searchLabel'), Text(' - '), BData(value: 'blog.title')]),
+      ],
+    ),
+    BIf(
+      cond: 'data:blog.homepageUrl != data:blog.url and not data:blog.pageType in {"item","static_page"} and not data:view.isLabelSearch and data:view.isSearch',
+      children: [
+        Title(children: [Text('Search Results for: '), BData(value: 'blog.searchQuery'), Text(' - '), BData(value: 'blog.title')]),
+      ],
+    ),
+    BIf(
+      cond: 'data:blog.homepageUrl != data:blog.url and not data:blog.pageType in {"item","static_page"} and not data:view.isLabelSearch and not data:view.isSearch and data:blog.pageType in {"error_page"}',
+      children: [
+        Title(children: [Text('Page Not Found - '), BData(value: 'blog.title')]),
+      ],
+    ),
+  ];
 }
 
+class BloggerHead extends Component {
+  const BloggerHead();
+
+  @override
+  Iterable<Component> build() => [
+    metaViewportHead,
+    metaBloggerAllHeadContentHead,
+    metaOgTypeHead,
+    metaGeoRegionHead,
+    metaContactPhoneHead,
+    linkHomeHead,
+    linkSearchHead,
+    metaIsGeneralContentHead,
+    metaIsAdultContentHead,
+    linkAlternateMobileHead,
+    linkImageSrcMultipleItemFirstFeaturedImageHead,
+    linkImageSrcSingleItemFeaturedImageHead,
+    metaIsGoogleAnalyticsHead,
+
+    // Core custom Title widget
+    const BloggerTitle(),
+
+    // Inject all JSON-LD schemas
+    ...ldScriptSchemas,
+
+    metaSubjectHead,
+    metaIsMetaDescriptionHead,
+
+    // Beautiful dynamic BSkin component using fully custom BGroup / BVariable definitions
+    BSkin(
+      r'''
+/* ==========================================================================
+   DESIGN TOKENS & SYSTEM THEME VARIABLES
+   ========================================================================== */
 :root {
-  --primary-color: #02569B;
-  --secondary-color: #0175C2;
-  --dark-color: #0f172a;
-  --light-color: #ffffff;
-  --bg-soft: #f8fafc;
-  --text-main: #334155;
-  --text-muted: #64748b;
-  --accent-color: #38bdf8;
-  --border-color: #e2e8f0;
+  --primary-color: $(theme.primary.color);
+  --secondary-color: $(theme.secondary.color);
+  --dark-color: $(theme.dark.color);
+  --light-color: $(theme.light.color);
+  --bg-soft: $(theme.bg.soft);
+  --text-main: $(theme.text.main);
+  --text-muted: $(theme.text.muted);
+  --border-color: $(theme.border.color);
+}
+
+*, *::before, *::after {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
 }
 
 html {
@@ -238,9 +423,8 @@ html {
 }
 
 body {
-  margin: 0;
+  background-color: var(--bg-soft);
   color: var(--text-main);
-  background: var(--bg-soft);
   line-height: 1.6;
 }
 
@@ -679,8 +863,841 @@ aside.sidebar {
   .footer-bottom { flex-direction: column; gap: 16px; text-align: center; }
 }
 ''',
-      ),
-      RawText(r'''
+      variables: [
+        const BGroup(
+          description: 'Theme Color Customisation Group',
+          variables: [
+            BVariable(name: 'theme.primary.color', description: 'Primary Color', type: 'color', defaultValue: '#02569B'),
+            BVariable(name: 'theme.secondary.color', description: 'Secondary Hover Color', type: 'color', defaultValue: '#0175C2'),
+            BVariable(name: 'theme.dark.color', description: 'Dark Slate Color', type: 'color', defaultValue: '#0f172a'),
+            BVariable(name: 'theme.light.color', description: 'White Color', type: 'color', defaultValue: '#ffffff'),
+            BVariable(name: 'theme.bg.soft', description: 'Background Muted Soft Color', type: 'color', defaultValue: '#f8fafc'),
+            BVariable(name: 'theme.text.main', description: 'Main Text Gray Color', type: 'color', defaultValue: '#334155'),
+            BVariable(name: 'theme.text.muted', description: 'Muted Muted Gray Color', type: 'color', defaultValue: '#64748b'),
+            BVariable(name: 'theme.border.color', description: 'Light border color', type: 'color', defaultValue: '#e2e8f0'),
+          ],
+        ),
+      ],
+    ),
+  ];
+}
+
+// ==========================================================================
+// 3. DART DECLARATIVE COMPONENT DEFINITIONS FOR BLOGGER BODY (LAYOUT, WIDGETS)
+// ==========================================================================
+
+class SiteHeader extends Component {
+  const SiteHeader();
+
+  @override
+  Iterable<Component> build() => [
+    Header(
+      attributes: {'class': 'site-header'},
+      children: [
+        Div(
+          attributes: {'class': 'container'},
+          children: [
+            Div(
+              attributes: {'class': 'logo'},
+              children: [
+                A(
+                  attributes: {
+                    'aria-label': 'Visit HireFlutter™ homepage',
+                    'class': 'notranslate',
+                    'expr:href': 'data:blog.homepageUrl',
+                  },
+                  children: [
+                    RawText(r'''
+<svg height='32' viewBox='0 0 200 200' width='32' xmlns='http://www.w3.org/2000/svg'>
+  <defs>
+    <radialGradient cx='50%' cy='50%' fx='50%' fy='50%' id='headGradient' r='50%'>
+      <stop offset='0%' style='stop-color:#85C1E9; stop-opacity:1'/>
+      <stop offset='100%' style='stop-color:#5DADE2; stop-opacity:1'/>
+    </radialGradient>
+  </defs>
+  <circle cx='100' cy='100' fill='url(#headGradient)' r='80' stroke='#3498DB' stroke-width='4'/>
+  <circle cx='70' cy='80' fill='#FFFFFF' r='20'/>
+  <circle cx='70' cy='80' fill='#000000' r='10'/>
+  <circle cx='130' cy='80' fill='#FFFFFF' r='20'/>
+  <circle cx='130' cy='80' fill='#000000' r='10'/>
+  <path d='M85,120 Q100,150 115,120 Q100,130 85,120 Z' fill='#F39C12' stroke='#D35400' stroke-width='2'/>
+  <text fill='#F39C12' font-family='Arial, sans-serif' font-size='30' text-anchor='middle' x='50%' y='180'>HF</text>
+</svg>
+'''),
+                    Span(children: [Text('HireFlutter™')]),
+                  ],
+                ),
+              ],
+            ),
+            Nav(
+              attributes: {'class': 'nav-links'},
+              children: [
+                A(attributes: {'expr:href': 'data:blog.homepageUrl'}, children: [Text('Home')]),
+                A(attributes: {'expr:href': 'data:blog.homepageUrl + "p/about-us.html"'}, children: [Text('About Us')]),
+                A(attributes: {'expr:href': 'data:blog.homepageUrl + "#services"'}, children: [Text('Services')]),
+                A(attributes: {'expr:href': 'data:blog.homepageUrl + "#blog"'}, children: [Text('Blog')]),
+                A(attributes: {'expr:href': 'data:blog.homepageUrl + "p/contact-us.html"'}, children: [Text('Contact Us')]),
+                Div(attributes: {'id': 'google_translate_element'}),
+              ],
+            ),
+          ],
+        ),
+      ],
+    ),
+  ];
+}
+
+class HeroSection extends Component {
+  const HeroSection();
+
+  @override
+  Iterable<Component> build() => [
+    Section(
+      attributes: {'class': 'hero'},
+      children: [
+        Div(
+          attributes: {'class': 'container hero-grid'},
+          children: [
+            Div(
+              attributes: {'class': 'hero-content'},
+              children: [
+                H1(attributes: {'class': 'hero-title'}, children: [Text('Hire World-Class Flutter Developers & Experts')]),
+                P(attributes: {'class': 'hero-subtitle'}, children: [Text('We craft responsive, high-performance cross-platform mobile apps, manage Dart workspaces, design robust monorepos, and deploy clean state management architectures.')]),
+                Div(
+                  attributes: {'class': 'hero-buttons'},
+                  children: [
+                    A(attributes: {'class': 'btn btn-primary', 'href': 'p/contact-us.html'}, children: [Text('Hire Us Now')]),
+                    A(attributes: {'class': 'btn btn-outline', 'href': '#blog'}, children: [Text('Explore Insights')]),
+                  ],
+                ),
+              ],
+            ),
+            Div(
+              attributes: {'class': 'hero-image'},
+              children: [
+                Img(attributes: {'alt': 'Flutter development', 'src': 'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEggpy8Livium-5MkYeTpFA6HdtwmXDGmZ-ugHtdEhsl6J0du_tTNy02ESnSyltRc4eGQ4oTUkwWokrcRI23J179wOzbt8ecnCxa9lzag4gXBbFeZ-FYjqRLfPBlIGvpwQpdF6RwUObEzTwBUCe9Wy_iKVdO9RQ2nQS6WFoQcGTLLOvVPZB1BhcVrnS329hs/s16000/hero-image.png'}),
+              ],
+            ),
+          ],
+        ),
+      ],
+    ),
+  ];
+}
+
+class ExpertiseSection extends Component {
+  const ExpertiseSection();
+
+  @override
+  Iterable<Component> build() => [
+    Section(
+      attributes: {'class': 'section-padding', 'id': 'services'},
+      children: [
+        Div(
+          attributes: {'class': 'container'},
+          children: [
+            Div(
+              attributes: {'class': 'section-header'},
+              children: [
+                H2(children: [Text('Our Deep Architectural Expertise')]),
+                P(children: [Text('Providing premium and clean Flutter services with structured codebases and modern software design patterns.')]),
+              ],
+            ),
+            Div(
+              attributes: {'class': 'features-grid'},
+              children: [
+                Div(
+                  attributes: {'class': 'feature-card'},
+                  children: [
+                    Div(attributes: {'class': 'feature-icon'}, children: [Text('1')]),
+                    H3(children: [Text('Monorepos & Dart Workspaces')]),
+                    P(children: [Text('We build production-ready systems structuring monorepos with precise Melos configurations to streamline dependency management, testing, and continuous delivery pipelines.')]),
+                  ],
+                ),
+                Div(
+                  attributes: {'class': 'feature-card'},
+                  children: [
+                    Div(attributes: {'class': 'feature-icon'}, children: [Text('2')]),
+                    H3(children: [Text('State Management & DI')]),
+                    P(children: [Text('We deploy robust state-management schemes (Bloc, Riverpod) combined with elegant Dependency Injection to ensure highly testable, scalable, and modular application layers.')]),
+                  ],
+                ),
+                Div(
+                  attributes: {'class': 'feature-card'},
+                  children: [
+                    Div(attributes: {'class': 'feature-icon'}, children: [Text('3')]),
+                    H3(children: [Text('High Performance & Custom UI')]),
+                    P(children: [Text('From complex responsive layouts to high-performance rendering optimizations and platform-channel integrations, we craft beautiful apps without compromises.')]),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    ),
+  ];
+}
+
+class HomepageBlogSection extends Component {
+  const HomepageBlogSection();
+
+  @override
+  Iterable<Component> build() => [
+    Section(
+      attributes: {'class': 'section-padding bg-white', 'id': 'blog'},
+      children: [
+        Div(
+          attributes: {'class': 'container'},
+          children: [
+            Div(
+              attributes: {'class': 'section-header'},
+              children: [
+                H2(children: [Text('Latest Technical Insights')]),
+                P(children: [Text('Deep dives into Dart, Flutter, and complex software architectural decisions directly from our core engineering team.')]),
+              ],
+            ),
+            Div(attributes: {'class': 'services-container', 'id': 'homepage-posts-container'}),
+            Div(
+              attributes: {'style': 'text-align: center; margin-top: 48px;'},
+              children: [
+                A(
+                  attributes: {
+                    'class': 'btn btn-outline',
+                    'expr:href': 'data:blog.canonicalUrl + "search?max-results=15"',
+                  },
+                  children: [Text('View All Articles')],
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    ),
+  ];
+}
+
+class ContactSection extends Component {
+  const ContactSection();
+
+  @override
+  Iterable<Component> build() => [
+    Section(
+      attributes: {'class': 'section-padding', 'id': 'contact'},
+      children: [
+        Div(
+          attributes: {'class': 'container'},
+          children: [
+            Div(
+              attributes: {'class': 'section-header'},
+              children: [
+                H2(children: [Text('Start Your Project')]),
+                P(children: [Text('Tell us about your architectural goals, timeline, and digital needs. Our Flutter specialists are ready to collaborate.')]),
+              ],
+            ),
+            Div(
+              attributes: {'class': 'contact-card'},
+              children: [
+                BSection(
+                  id: 'contact-form-container',
+                  children: [
+                    BWidget(
+                      id: 'ContactForm1',
+                      type: 'ContactForm',
+                      title: 'Contact Form',
+                      locked: false,
+                      version: 1,
+                      children: [
+                        BIncludable(
+                          id: 'main',
+                          children: [
+                            Form(
+                              attributes: {'name': 'contact-form'},
+                              children: [
+                                Div(
+                                  attributes: {'class': 'form-group'},
+                                  children: [
+                                    Label(children: [Text('Full Name')]),
+                                    Input(attributes: {'class': 'form-control', 'expr:id': 'data:widget.instanceId + "_contact-form-name"', 'name': 'name', 'placeholder': 'Your Name', 'type': 'text'}),
+                                  ],
+                                ),
+                                Div(
+                                  attributes: {'class': 'form-group'},
+                                  children: [
+                                    Label(children: [Text('Email Address')]),
+                                    Input(attributes: {'class': 'form-control', 'expr:id': 'data:widget.instanceId + "_contact-form-email"', 'name': 'email', 'placeholder': 'you@example.com', 'type': 'text'}),
+                                  ],
+                                ),
+                                Div(
+                                  attributes: {'class': 'form-group'},
+                                  children: [
+                                    Label(children: [Text('Message Details')]),
+                                    DomComponent('textarea', attributes: {'class': 'form-control', 'expr:id': 'data:widget.instanceId + "_contact-form-email-message"', 'name': 'email-message', 'placeholder': 'Detail your project parameters...', 'rows': '5'}),
+                                  ],
+                                ),
+                                Input(attributes: {'class': 'btn btn-primary', 'style': 'width: 100%', 'expr:id': 'data:widget.instanceId + "_contact-form-submit"', 'expr:value': 'data:contactFormSendMsg', 'type': 'button'}),
+                                Div(
+                                  attributes: {'style': 'margin-top: 16px;'},
+                                  children: [
+                                    P(attributes: {'expr:id': 'data:widget.instanceId + "_contact-form-error-message"', 'style': 'color: red; font-size: 14px;'}),
+                                    P(attributes: {'expr:id': 'data:widget.instanceId + "_contact-form-success-message"', 'style': 'color: green; font-size: 14px;'}),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    ),
+  ];
+}
+
+class Error404Page extends Component {
+  const Error404Page();
+
+  @override
+  Iterable<Component> build() => [
+    BIf(
+      cond: 'data:view.isError',
+      children: [
+        Div(
+          attributes: {'class': 'blog-layout'},
+          children: [
+            Div(
+              attributes: {'class': 'container', 'style': 'text-align: center; padding: 100px 0;'},
+              children: [
+                H1(attributes: {'style': 'font-size: 120px; color: var(--primary-color); margin: 0;'}, children: [Text('404')]),
+                H2(children: [Text('Page Not Found')]),
+                P(attributes: {'style': 'color: var(--text-muted); font-size: 18px; margin-bottom: 32px;'}, children: [Text('The page you are looking for does not exist or has been relocated.')]),
+                A(attributes: {'class': 'btn btn-primary', 'expr:href': 'data:blog.homepageUrl'}, children: [Text('Return Home')]),
+              ],
+            ),
+          ],
+        ),
+      ],
+    ),
+  ];
+}
+
+class BlogLayout extends Component {
+  const BlogLayout();
+
+  @override
+  Iterable<Component> build() => [
+    BIf(
+      cond: 'not data:view.isHomepage and not data:view.isError',
+      children: [
+        Div(
+          attributes: {'class': 'blog-layout'},
+          children: [
+            Div(
+              attributes: {'class': 'container blog-grid'},
+              children: [
+                DomComponent(
+                  'main',
+                  attributes: {'class': 'main-content'},
+                  children: [
+                    BSection(
+                      id: 'blog-container',
+                      children: [
+                        BWidget(
+                          id: 'Blog1',
+                          type: 'Blog',
+                          title: 'Blog Posts',
+                          locked: false,
+                          version: 1,
+                          children: [
+                            BIncludable(
+                              id: 'main',
+                              varName: 'top',
+                              children: [
+                                Div(
+                                  attributes: {'class': 'blog-posts'},
+                                  children: [
+                                    BLoop(
+                                      values: 'data:posts',
+                                      varName: 'post',
+                                      children: [
+                                        Meta(attributes: {'expr:content': 'data:post.url', 'itemprop': 'mainEntityOfPage'}),
+                                        Meta(attributes: {'expr:content': 'data:post.timestampISO8601', 'itemprop': 'dateModified'}),
+                                        Span(
+                                          attributes: {'itemprop': 'publisher', 'itemscope': 'itemscope', 'itemtype': 'https://schema.org/Organization'},
+                                          children: [
+                                            Meta(attributes: {'expr:content': 'data:blog.title', 'itemprop': 'name'}),
+                                            Span(
+                                              attributes: {'itemprop': 'logo', 'itemscope': 'itemscope', 'itemtype': 'https://schema.org/ImageObject'},
+                                              children: [
+                                                Meta(attributes: {'expr:content': 'data:blog.homepageUrl + "favicon.ico"', 'itemprop': 'url'}),
+                                                Meta(attributes: {'content': '500', 'itemprop': 'width'}),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                        Span(
+                                          attributes: {'itemprop': 'author', 'itemscope': 'itemscope', 'itemtype': 'https://schema.org/Person'},
+                                          children: [
+                                            Meta(attributes: {'expr:content': 'data:post.authorProfileUrl', 'itemprop': 'url'}),
+                                            Meta(attributes: {'expr:content': 'data:post.author', 'itemprop': 'name'}),
+                                          ],
+                                        ),
+                                        BIf(
+                                          cond: 'data:post.firstImageUrl',
+                                          children: [
+                                            Div(
+                                              attributes: {'itemprop': 'image', 'itemscope': 'itemscope', 'itemtype': 'https://schema.org/ImageObject'},
+                                              children: [
+                                                Meta(attributes: {'expr:content': 'data:post.firstImageUrl', 'itemprop': 'url'}),
+                                                Meta(attributes: {'content': '700', 'itemprop': 'width'}),
+                                                Meta(attributes: {'content': '700', 'itemprop': 'height'}),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                        BIf(
+                                          cond: 'data:view.isSingleItem',
+                                          children: [
+                                            Div(
+                                              attributes: {'class': 'breadcrumbs'},
+                                              children: [
+                                                A(attributes: {'expr:href': 'data:blog.homepageUrl'}, children: [Text('Home')]),
+                                                Text(' > '),
+                                                BIf(
+                                                  cond: 'data:post.labels',
+                                                  children: [
+                                                    BLoop(
+                                                      values: 'data:post.labels',
+                                                      varName: 'label',
+                                                      children: [
+                                                        A(attributes: {'expr:href': 'data:label.url'}, children: [BData(value: 'label.name')]),
+                                                        Text(' '),
+                                                      ],
+                                                    ),
+                                                  ],
+                                                ),
+                                                Text(' > '),
+                                                DomComponent('strong', children: [BData(value: 'post.title')]),
+                                              ],
+                                            ),
+                                            Article(
+                                              attributes: {'class': 'single-post'},
+                                              children: [
+                                                H1(attributes: {'class': 'post-heading'}, children: [BData(value: 'post.title')]),
+                                                Div(
+                                                  attributes: {'class': 'post-meta'},
+                                                  children: [
+                                                    Span(children: [Text('By '), DomComponent('strong', children: [BData(value: 'post.author')])]),
+                                                    Span(children: [Text('Published '), DomComponent('strong', children: [BData(value: 'post.timestamp')])]),
+                                                  ],
+                                                ),
+                                                Div(
+                                                  attributes: {'class': 'post-body entry-content', 'style': 'background:#fff; padding: 40px; border-radius: 16px; border:1px solid var(--border-color); margin-top:32px;'},
+                                                  children: [BData(value: 'post.body')],
+                                                ),
+                                              ],
+                                            ),
+                                            BInclude(name: 'comment_picker', data: 'post'),
+                                          ],
+                                        ),
+                                        BIf(
+                                          cond: 'data:view.isMultipleItems',
+                                          children: [
+                                            Div(
+                                              attributes: {'class': 'post-card'},
+                                              children: [
+                                                Div(
+                                                  attributes: {'class': 'post-card-img'},
+                                                  children: [
+                                                    A(
+                                                      attributes: {'expr:href': 'data:post.url'},
+                                                      children: [
+                                                        BIf(
+                                                          cond: 'data:post.firstImageUrl',
+                                                          children: [
+                                                            Img(attributes: {'expr:alt': 'data:post.title', 'expr:src': 'data:post.firstImageUrl'}),
+                                                          ],
+                                                        ),
+                                                        BIf(
+                                                          cond: '!data:post.firstImageUrl',
+                                                          children: [
+                                                            Img(attributes: {'expr:alt': 'data:post.title', 'src': 'https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEh7qj4GtXna090Q1-R8hIY69tpMdc9QWewEODYQCS2FV57askuUaOD87O4Qn2gY4FcgVY8C8e-ickla16fvzGPR9Na2tkejnBbn_xh9pCKmO9ZWd_y_g1fjbS2uJEoFUvx5cT1Pt6F29l0IUzDVHHksyxkGOimBRaxsWpn_6wlXGzPavsCpGAC7KPqIKn1E/s16000/thumbnail-placeholder.png'}),
+                                                          ],
+                                                        ),
+                                                      ],
+                                                    ),
+                                                  ],
+                                                ),
+                                                Div(
+                                                  attributes: {'class': 'post-card-content'},
+                                                  children: [
+                                                    Div(
+                                                      attributes: {'class': 'post-meta'},
+                                                      children: [
+                                                        Span(children: [Text('By '), DomComponent('strong', children: [BData(value: 'post.author')])]),
+                                                        Span(children: [BData(value: 'post.timestamp')]),
+                                                      ],
+                                                    ),
+                                                    H2(
+                                                      attributes: {'class': 'post-card-title'},
+                                                      children: [
+                                                        A(attributes: {'expr:href': 'data:post.url'}, children: [BData(value: 'post.title')]),
+                                                      ],
+                                                    ),
+                                                    P(attributes: {'class': 'post-snippet'}, children: [BEval(expr: 'data:post.snippet')]),
+                                                    A(attributes: {'class': 'btn btn-outline', 'expr:href': 'data:post.url', 'style': 'padding: 8px 20px; font-size:14px;'}, children: [Text('Read Article')]),
+                                                  ],
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                    BIf(
+                                      cond: 'data:view.isMultipleItems',
+                                      children: [
+                                        BIf(
+                                          cond: 'data:olderPageUrl',
+                                          children: [
+                                            Div(
+                                              attributes: {'style': 'margin-top: 32px;'},
+                                              children: [
+                                                A(attributes: {'class': 'btn btn-outline', 'expr:href': 'data:olderPageUrl'}, children: [Text('Older Articles')]),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                            BIncludable(
+                              id: 'comment_picker',
+                              varName: 'post',
+                              children: [
+                                BIf(
+                                  cond: 'data:post.showThreadedComments',
+                                  children: [
+                                    BInclude(name: 'threaded_comments', data: 'post'),
+                                  ],
+                                ),
+                                BIf(
+                                  cond: '!data:post.showThreadedComments',
+                                  children: [
+                                    BInclude(name: 'comments', data: 'post'),
+                                  ],
+                                ),
+                              ],
+                            ),
+                            BIncludable(
+                              id: 'comments',
+                              varName: 'post',
+                              children: [
+                                Div(
+                                  attributes: {'class': 'comments widget', 'id': 'comments', 'style': 'margin-top: 40px;'},
+                                  children: [
+                                    H4(children: [Text('Comments')]),
+                                    BIf(
+                                      cond: 'data:post.allowComments',
+                                      children: [
+                                        Div(
+                                          attributes: {'expr:id': 'data:widget.instanceId + "_comments-block-wrapper"'},
+                                          children: [
+                                            BLoop(
+                                              values: 'data:post.comments',
+                                              varName: 'comment',
+                                              children: [
+                                                Div(
+                                                  attributes: {'class': 'comment-block', 'style': 'padding: 16px 0; border-bottom: 1px solid var(--border-color);'},
+                                                  children: [
+                                                    DomComponent('strong', children: [BData(value: 'comment.author')]),
+                                                    Text(' says:'),
+                                                    P(children: [BData(value: 'comment.body')]),
+                                                  ],
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                        BInclude(name: 'comment-form', data: 'post'),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                            BIncludable(
+                              id: 'comment-form',
+                              varName: 'post',
+                              children: [
+                                Div(
+                                  attributes: {'class': 'comment-form', 'style': 'margin-top: 24px;'},
+                                  children: [
+                                    H4(children: [Text('Add Comment')]),
+                                    DomComponent('iframe', attributes: {
+                                      'allowtransparency': 'true',
+                                      'class': 'blogger-comment-from-post',
+                                      'expr:height': 'data:cmtIframeInitialHeight',
+                                      'frameborder': '0',
+                                      'id': 'comment-editor',
+                                      'name': 'comment-editor',
+                                      'src': '',
+                                      'width': '100%',
+                                    }),
+                                    BData(value: 'post.cmtfpIframe'),
+                                    RawText(r'''<script type='text/javascript'> BLOG_CMT_createIframe(' <data:post.appRpcRelayPath/> '); </script>'''),
+                                  ],
+                                ),
+                              ],
+                            ),
+                            BIncludable(
+                              id: 'threaded_comments',
+                              varName: 'post',
+                              children: [
+                                Div(
+                                  attributes: {'class': 'comments widget', 'id': 'comments', 'style': 'margin-top: 40px;'},
+                                  children: [
+                                    H4(children: [Text('Threaded Comments')]),
+                                    Div(attributes: {'id': 'comment-holder'}, children: [BData(value: 'post.commentHtml')]),
+                                    BInclude(name: 'threaded-comment-form', data: 'post'),
+                                  ],
+                                ),
+                              ],
+                            ),
+                            BIncludable(
+                              id: 'threaded-comment-form',
+                              varName: 'post',
+                              children: [
+                                Div(
+                                  attributes: {'class': 'comment-form', 'style': 'margin-top: 24px;'},
+                                  children: [
+                                    DomComponent('iframe', attributes: {
+                                      'allowtransparency': 'true',
+                                      'class': 'blogger-comment-from-post',
+                                      'expr:height': 'data:cmtIframeInitialHeight',
+                                      'frameborder': '0',
+                                      'id': 'comment-editor',
+                                      'name': 'comment-editor',
+                                      'src': '',
+                                      'width': '100%',
+                                    }),
+                                    BData(value: 'post.cmtfpIframe'),
+                                    RawText(r'''<script type='text/javascript'> BLOG_CMT_createIframe(' <data:post.appRpcRelayPath/> '); </script>'''),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+                Aside(
+                  attributes: {'class': 'sidebar'},
+                  children: [
+                    BSection(
+                      id: 'popular-posts-container',
+                      children: [
+                        BWidget(
+                          id: 'PopularPosts1',
+                          type: 'PopularPosts',
+                          title: 'Popular Posts',
+                          locked: false,
+                          version: 1,
+                          children: [
+                            BWidgetSettings(children: [
+                              BWidgetSetting(name: 'numItemsToShow', children: [Text('3')]),
+                              BWidgetSetting(name: 'showThumbnails', children: [Text('true')]),
+                              BWidgetSetting(name: 'showSnippets', children: [Text('true')]),
+                              BWidgetSetting(name: 'timeRange', children: [Text('LAST_YEAR')]),
+                            ]),
+                            BIncludable(
+                              id: 'main',
+                              children: [
+                                Div(
+                                  attributes: {'class': 'widget'},
+                                  children: [
+                                    H3(attributes: {'class': 'widget-title'}, children: [Text('Popular Content')]),
+                                    Div(
+                                      attributes: {'class': 'popular-list'},
+                                      children: [
+                                        BLoop(
+                                          values: 'data:posts',
+                                          varName: 'post',
+                                          children: [
+                                            Div(
+                                              attributes: {'style': 'margin-bottom: 20px;'},
+                                              children: [
+                                                A(
+                                                  attributes: {
+                                                    'expr:href': 'data:post.href',
+                                                    'style': 'font-weight:600; font-size:15px; color:var(--dark-color); display:block; margin-bottom:4px;',
+                                                  },
+                                                  children: [BData(value: 'post.title')],
+                                                ),
+                                                Span(
+                                                  attributes: {'style': 'font-size:13px; color:var(--text-muted);'},
+                                                  children: [BEval(expr: 'data:post.snippet')],
+                                                ),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                    BSection(
+                      id: 'labels-container',
+                      children: [
+                        BWidget(
+                          id: 'Label1',
+                          type: 'Label',
+                          title: 'Categories',
+                          locked: false,
+                          version: 1,
+                          children: [
+                            BIncludable(
+                              id: 'main',
+                              children: [
+                                Div(
+                                  attributes: {'class': 'widget'},
+                                  children: [
+                                    H3(attributes: {'class': 'widget-title'}, children: [Text('Categories')]),
+                                    Div(
+                                      attributes: {'style': 'display:flex; flex-wrap:wrap; gap:8px;'},
+                                      children: [
+                                        BLoop(
+                                          values: 'data:labels',
+                                          varName: 'label',
+                                          children: [
+                                            A(
+                                              attributes: {
+                                                'expr:href': 'data:label.url',
+                                                'style': 'padding:6px 12px; background:var(--bg-soft); border-radius:20px; font-size:13px; border:1px solid var(--border-color); font-weight:500;',
+                                              },
+                                              children: [
+                                                BData(value: 'label.name'),
+                                                Text(' ('),
+                                                BData(value: 'label.count'),
+                                                Text(')'),
+                                              ],
+                                            ),
+                                          ],
+                                        ),
+                                      ],
+                                    ),
+                                  ],
+                                ),
+                              ],
+                            ),
+                          ],
+                        ),
+                      ],
+                    ),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
+      ],
+    ),
+  ];
+}
+
+class SiteFooter extends Component {
+  const SiteFooter();
+
+  @override
+  Iterable<Component> build() => [
+    Footer(
+      attributes: {'class': 'site-footer'},
+      children: [
+        Div(
+          attributes: {'class': 'container footer-grid'},
+          children: [
+            Div(
+              attributes: {'class': 'footer-col-about'},
+              children: [
+                H3(attributes: {'style': 'margin: 0 0 16px; font-size:22px;'}, children: [Text('HireFlutter™')]),
+                P(children: [Text('Providing cutting-edge cross-platform mobile apps, architectural consulting, performance tuning, and clean software setups with state-of-the-art Flutter &amp; Dart engineering patterns.')]),
+                Div(
+                  attributes: {'class': 'social-links'},
+                  children: [
+                    A(attributes: {'aria-label': 'Visit our Facebook page', 'class': 'social-icon', 'href': 'https://www.facebook.com/profile.php?id=100080805714776'}, children: [Text('FB')]),
+                    A(attributes: {'aria-label': 'Visit our Instagram profile', 'class': 'social-icon', 'href': 'https://www.instagram.com/antinna.yt/'}, children: [Text('IG')]),
+                    A(attributes: {'aria-label': 'Visit our GitHub Organization', 'class': 'social-icon', 'href': 'https://github.com/antinna'}, children: [Text('GH')]),
+                  ],
+                ),
+              ],
+            ),
+            Div(
+              attributes: {'class': 'footer-col-links'},
+              children: [
+                H4(children: [Text('Quick Links')]),
+                Ul(
+                  attributes: {'class': 'footer-links-list'},
+                  children: [
+                    Li(children: [A(attributes: {'expr:href': 'data:blog.homepageUrl'}, children: [Text('Home')])]),
+                    Li(children: [A(attributes: {'expr:href': 'data:blog.homepageUrl + "p/about-us.html"'}, children: [Text('About Us')])]),
+                    Li(children: [A(attributes: {'expr:href': 'data:blog.homepageUrl + "p/contact-us.html"'}, children: [Text('Contact Us')])]),
+                    Li(children: [A(attributes: {'expr:href': 'data:blog.homepageUrl + "#services"'}, children: [Text('Services')])]),
+                    Li(children: [A(attributes: {'expr:href': 'data:blog.homepageUrl + "#blog"'}, children: [Text('Insights')])]),
+                  ],
+                ),
+              ],
+            ),
+            Div(
+              attributes: {'class': 'footer-col-links'},
+              children: [
+                H4(children: [Text('Legal & Support')]),
+                Ul(
+                  attributes: {'class': 'footer-links-list'},
+                  children: [
+                    Li(children: [A(attributes: {'expr:href': 'data:blog.homepageUrl + "p/privacy-policy.html"'}, children: [Text('Privacy Policy')])]),
+                    Li(children: [A(attributes: {'expr:href': 'data:blog.homepageUrl + "p/disclaimer.html"'}, children: [Text('Disclaimer')])]),
+                    Li(children: [A(attributes: {'expr:href': 'data:blog.homepageUrl + "p/termandconditions.html"'}, children: [Text('Terms & Conditions')])]),
+                  ],
+                ),
+              ],
+            ),
+          ],
+        ),
+        Div(
+          attributes: {'class': 'container footer-bottom'},
+          children: [
+            P(children: [RawText('&#169; 2026 HireFlutter. All Rights Reserved. Fully optimized for Google AdSense compliance.')]),
+            P(children: [Text('Empowered by passion and high-end software craftsmanship.')]),
+          ],
+        ),
+      ],
+    ),
+  ];
+}
+
+class ClientInteractivityScripts extends Component {
+  const ClientInteractivityScripts();
+
+  @override
+  Iterable<Component> build() => [
+    RawText(r'''
 <script>
   cookieOptions = {
     close: "Got it!",
@@ -709,402 +1726,11 @@ aside.sidebar {
   }
 </script>
 <script defer='defer' src='https://translate.google.com/translate_a/element.js?cb=googleTranslateElementInit' type='text/javascript'/>
-''')
-    ],
-    body: [
-      // Body Class Conditional
-      RawText("<b:class cond='data:view.isSingleItem' name='single-item'/>"),
-
-      // Global Header/Nav
-      RawText(r'''
-<header class='site-header'>
-  <div class='container'>
-    <div class='logo'>
-      <a aria-label='Visit HireFlutter™ homepage' class='notranslate' expr:href='data:blog.homepageUrl'>
-        <svg height='32' viewBox='0 0 200 200' width='32' xmlns='http://www.w3.org/2000/svg'>
-          <defs>
-            <radialGradient cx='50%' cy='50%' fx='50%' fy='50%' id='headGradient' r='50%'>
-              <stop offset='0%' style='stop-color:#85C1E9; stop-opacity:1'/>
-              <stop offset='100%' style='stop-color:#5DADE2; stop-opacity:1'/>
-            </radialGradient>
-          </defs>
-          <circle cx='100' cy='100' fill='url(#headGradient)' r='80' stroke='#3498DB' stroke-width='4'/>
-          <circle cx='70' cy='80' fill='#FFFFFF' r='20'/>
-          <circle cx='70' cy='80' fill='#000000' r='10'/>
-          <circle cx='130' cy='80' fill='#FFFFFF' r='20'/>
-          <circle cx='130' cy='80' fill='#000000' r='10'/>
-          <path d='M85,120 Q100,150 115,120 Q100,130 85,120 Z' fill='#F39C12' stroke='#D35400' stroke-width='2'/>
-          <text fill='#F39C12' font-family='Arial, sans-serif' font-size='30' text-anchor='middle' x='50%' y='180'>HF</text>
-        </svg>
-        <span>HireFlutter™</span>
-      </a>
-    </div>
-    <nav class='nav-links'>
-      <a expr:href='data:blog.homepageUrl'>Home</a>
-      <a expr:href='data:blog.homepageUrl + &quot;p/about-us.html&quot;'>About Us</a>
-      <a expr:href='data:blog.homepageUrl + &quot;#services&quot;'>Services</a>
-      <a expr:href='data:blog.homepageUrl + &quot;#blog&quot;'>Blog</a>
-      <a expr:href='data:blog.homepageUrl + &quot;p/contact-us.html&quot;'>Contact Us</a>
-      <div id='google_translate_element'></div>
-    </nav>
-  </div>
-</header>
 '''),
-
-      // Conditional Content: Homepage vs Subpages
-      RawText(r'''
-<b:if cond='data:view.isHomepage'>
-  <!-- Hero Section -->
-  <section class='hero'>
-    <div class='container hero-grid'>
-      <div class='hero-content'>
-        <h1 class='hero-title'>Hire World-Class Flutter Developers &amp; Experts</h1>
-        <p class='hero-subtitle'>We craft responsive, high-performance cross-platform mobile apps, manage Dart workspaces, design robust monorepos, and deploy clean state management architectures.</p>
-        <div class='hero-buttons'>
-          <a class='btn btn-primary' href='p/contact-us.html'>Hire Us Now</a>
-          <a class='btn btn-outline' href='#blog'>Explore Insights</a>
-        </div>
-      </div>
-      <div class='hero-image'>
-        <img alt='Flutter development' src='https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEggpy8Livium-5MkYeTpFA6HdtwmXDGmZ-ugHtdEhsl6J0du_tTNy02ESnSyltRc4eGQ4oTUkwWokrcRI23J179wOzbt8ecnCxa9lzag4gXBbFeZ-FYjqRLfPBlIGvpwQpdF6RwUObEzTwBUCe9Wy_iKVdO9RQ2nQS6WFoQcGTLLOvVPZB1BhcVrnS329hs/s16000/hero-image.png'/>
-      </div>
-    </div>
-  </section>
-
-  <!-- About / Benefits Section -->
-  <section class='section-padding' id='services'>
-    <div class='container'>
-      <div class='section-header'>
-        <h2>Our Deep Architectural Expertise</h2>
-        <p>Providing premium and clean Flutter services with structured codebases and modern software design patterns.</p>
-      </div>
-      <div class='features-grid'>
-        <div class='feature-card'>
-          <div class='feature-icon'>1</div>
-          <h3>Monorepos &amp; Dart Workspaces</h3>
-          <p>We build production-ready systems structuring monorepos with precise Melos configurations to streamline dependency management, testing, and continuous delivery pipelines.</p>
-        </div>
-        <div class='feature-card'>
-          <div class='feature-icon'>2</div>
-          <h3>State Management &amp; DI</h3>
-          <p>We deploy robust state-management schemes (Bloc, Riverpod) combined with elegant Dependency Injection to ensure highly testable, scalable, and modular application layers.</p>
-        </div>
-        <div class='feature-card'>
-          <div class='feature-icon'>3</div>
-          <h3>High Performance &amp; Custom UI</h3>
-          <p>From complex responsive layouts to high-performance rendering optimizations and platform-channel integrations, we craft beautiful apps without compromises.</p>
-        </div>
-      </div>
-    </div>
-  </section>
-
-  <!-- Latest Insights / Blog Posts on Homepage -->
-  <section class='section-padding bg-white' id='blog'>
-    <div class='container'>
-      <div class='section-header'>
-        <h2>Latest Technical Insights</h2>
-        <p>Deep dives into Dart, Flutter, and complex software architectural decisions directly from our core engineering team.</p>
-      </div>
-      <div class='services-container' id='homepage-posts-container'>
-        <!-- Posts will dynamically load here or be managed by Blogger widget -->
-      </div>
-      <div style='text-align: center; margin-top: 48px;'>
-        <a class='btn btn-outline' expr:href='data:blog.canonicalUrl + &quot;search?max-results=15&quot;'>View All Articles</a>
-      </div>
-    </div>
-  </section>
-
-  <!-- Contact Form on Homepage -->
-  <section class='section-padding' id='contact'>
-    <div class='container'>
-      <div class='section-header'>
-        <h2>Start Your Project</h2>
-        <p>Tell us about your architectural goals, timeline, and digital needs. Our Flutter specialists are ready to collaborate.</p>
-      </div>
-      <div class='contact-card'>
-        <b:section id='contact-form-container'>
-          <b:widget id='ContactForm1' locked='false' title='Contact Form' type='ContactForm' version='1'>
-            <b:includable id='main'>
-              <form name='contact-form'>
-                <div class='form-group'>
-                  <label>Full Name</label>
-                  <input class='form-control' expr:id='data:widget.instanceId + &quot;_contact-form-name&quot;' name='name' placeholder='Your Name' type='text'/>
-                </div>
-                <div class='form-group'>
-                  <label>Email Address</label>
-                  <input class='form-control' expr:id='data:widget.instanceId + &quot;_contact-form-email&quot;' name='email' placeholder='you@example.com' type='text'/>
-                </div>
-                <div class='form-group'>
-                  <label>Message Details</label>
-                  <textarea class='form-control' expr:id='data:widget.instanceId + &quot;_contact-form-email-message&quot;' name='email-message' placeholder='Detail your project parameters...' rows='5'></textarea>
-                </div>
-                <input class='btn btn-primary' style='width: 100%' expr:id='data:widget.instanceId + &quot;_contact-form-submit&quot;' expr:value='data:contactFormSendMsg' type='button'/>
-                <div style='margin-top: 16px;'>
-                  <p expr:id='data:widget.instanceId + &quot;_contact-form-error-message&quot;' style='color: red; font-size: 14px;'></p>
-                  <p expr:id='data:widget.instanceId + &quot;_contact-form-success-message&quot;' style='color: green; font-size: 14px;'></p>
-                </div>
-              </form>
-            </b:includable>
-          </b:widget>
-        </b:section>
-      </div>
-    </div>
-  </section>
-</b:if>
-'''),
-
-      // Error 404 Page Layout
-      RawText(r'''
-<b:if cond='data:view.isError'>
-  <div class='blog-layout'>
-    <div class='container' style='text-align: center; padding: 100px 0;'>
-      <h1 style='font-size: 120px; color: var(--primary-color); margin: 0;'>404</h1>
-      <h2>Page Not Found</h2>
-      <p style='color: var(--text-muted); font-size: 18px; margin-bottom: 32px;'>The page you are looking for does not exist or has been relocated.</p>
-      <a class='btn btn-primary' expr:href='data:blog.homepageUrl'>Return Home</a>
-    </div>
-  </div>
-</b:if>
-'''),
-
-      // Single post & Blog Archive/Category/Label Pages
-      RawText(r'''
-<b:if cond='not data:view.isHomepage and not data:view.isError'>
-  <div class='blog-layout'>
-    <div class='container blog-grid'>
-      <!-- Left Main Content Column -->
-      <main class='main-content'>
-        <b:section id='blog-container'>
-          <b:widget id='Blog1' locked='false' title='Blog Posts' type='Blog' version='1'>
-            <b:includable id='main' var='top'>
-              <div class='blog-posts'>
-                <b:loop values='data:posts' var='post'>
-                  <!-- Structured data markers -->
-                  <meta expr:content='data:post.url' itemprop='mainEntityOfPage'/>
-                  <meta expr:content='data:post.timestampISO8601' itemprop='dateModified'/>
-                  <span itemprop='publisher' itemscope='itemscope' itemtype='https://schema.org/Organization'>
-                     <meta expr:content='data:blog.title' itemprop='name'/>
-                     <span itemprop='logo' itemscope='itemscope' itemtype='https://schema.org/ImageObject'>
-                        <meta expr:content='data:blog.homepageUrl + &quot;favicon.ico&quot;' itemprop='url'/>
-                        <meta content='500' itemprop='width'/>
-                     </span>
-                  </span>
-                  <span itemprop='author' itemscope='itemscope' itemtype='https://schema.org/Person'>
-                     <meta expr:content='data:post.authorProfileUrl' itemprop='url'/>
-                     <meta expr:content='data:post.author' itemprop='name'/>
-                  </span>
-                  <b:if cond='data:post.firstImageUrl'>
-                     <div itemprop='image' itemscope='itemscope' itemtype='https://schema.org/ImageObject'>
-                        <meta expr:content='data:post.firstImageUrl' itemprop='url'/>
-                        <meta content='700' itemprop='width'/>
-                        <meta content='700' itemprop='height'/>
-                     </div>
-                  </b:if>
-
-                  <!-- Dynamic Rendering -->
-                  <b:if cond='data:view.isSingleItem'>
-                    <!-- Single Article View -->
-                    <div class='breadcrumbs'>
-                      <a expr:href='data:blog.homepageUrl'>Home</a> &gt;
-                      <b:if cond='data:post.labels'>
-                        <b:loop values='data:post.labels' var='label'>
-                          <a expr:href='data:label.url'><data:label.name/></a>
-                        </b:loop>
-                      </b:if> &gt;
-                      <strong><data:post.title/></strong>
-                    </div>
-                    <article class='single-post'>
-                      <h1 class='post-heading'><data:post.title/></h1>
-                      <div class='post-meta'>
-                        <span>By <strong><data:post.author/></strong></span>
-                        <span>Published <strong><data:post.timestamp/></strong></span>
-                      </div>
-                      <div class='post-body entry-content' style='background:#fff; padding: 40px; border-radius: 16px; border:1px solid var(--border-color); margin-top:32px;'>
-                        <data:post.body/>
-                      </div>
-                    </article>
-
-                    <!-- Comments section -->
-                    <b:include data='post' name='comment_picker'/>
-                  </b:if>
-
-                  <b:if cond='data:view.isMultipleItems'>
-                    <!-- Blog Post Listings / Cards -->
-                    <div class='post-card'>
-                      <div class='post-card-img'>
-                        <a expr:href='data:post.url'>
-                          <b:if cond='data:post.firstImageUrl'>
-                            <img expr:alt='data:post.title' expr:src='data:post.firstImageUrl'/>
-                          <b:else/>
-                            <img expr:alt='data:post.title' src='https://blogger.googleusercontent.com/img/b/R29vZ2xl/AVvXsEh7qj4GtXna090Q1-R8hIY69tpMdc9QWewEODYQCS2FV57askuUaOD87O4Qn2gY4FcgVY8C8e-ickla16fvzGPR9Na2tkejnBbn_xh9pCKmO9ZWd_y_g1fjbS2uJEoFUvx5cT1Pt6F29l0IUzDVHHksyxkGOimBRaxsWpn_6wlXGzPavsCpGAC7KPqIKn1E/s16000/thumbnail-placeholder.png'/>
-                          </b:if>
-                        </a>
-                      </div>
-                      <div class='post-card-content'>
-                        <div class='post-meta'>
-                          <span>By <strong><data:post.author/></strong></span>
-                          <span><data:post.timestamp/></span>
-                        </div>
-                        <h2 class='post-card-title'>
-                          <a expr:href='data:post.url'><data:post.title/></a>
-                        </h2>
-                        <p class='post-snippet'><b:eval expr='data:post.snippet'/></p>
-                        <a class='btn btn-outline' expr:href='data:post.url' style='padding: 8px 20px; font-size:14px;'>Read Article</a>
-                      </div>
-                    </div>
-                  </b:if>
-                </b:loop>
-
-                <!-- Navigation / Older Posts -->
-                <b:if cond='data:view.isMultipleItems'>
-                  <b:if cond='data:olderPageUrl'>
-                    <div style='margin-top: 32px;'>
-                      <a class='btn btn-outline' expr:href='data:olderPageUrl'>Older Articles</a>
-                    </div>
-                  </b:if>
-                </b:if>
-              </div>
-            </b:includable>
-            <b:includable id='comment_picker' var='post'>
-              <b:if cond='data:post.showThreadedComments'>
-                <b:include data='post' name='threaded_comments'/>
-              <b:else/>
-                <b:include data='post' name='comments'/>
-              </b:if>
-            </b:includable>
-            <b:includable id='comments' var='post'>
-              <div class='comments widget' id='comments' style='margin-top: 40px;'>
-                <h4>Comments</h4>
-                <b:if cond='data:post.allowComments'>
-                  <div expr:id='data:widget.instanceId + &quot;_comments-block-wrapper&quot;'>
-                    <b:loop values='data:post.comments' var='comment'>
-                      <div class='comment-block' style='padding: 16px 0; border-bottom: 1px solid var(--border-color);'>
-                        <strong><data:comment.author/></strong> says:
-                        <p><data:comment.body/></p>
-                      </div>
-                    </b:loop>
-                  </div>
-                  <b:include data='post' name='comment-form'/>
-                </b:if>
-              </div>
-            </b:includable>
-            <b:includable id='comment-form' var='post'>
-              <div class='comment-form' style='margin-top: 24px;'>
-                <h4>Add Comment</h4>
-                <iframe allowtransparency='true' class='blogger-comment-from-post' expr:height='data:cmtIframeInitialHeight' frameborder='0' id='comment-editor' name='comment-editor' src='' width='100%'/>
-                <data:post.cmtfpIframe/>
-                <script type='text/javascript'> BLOG_CMT_createIframe(&#39; <data:post.appRpcRelayPath/> &#39;); </script>
-              </div>
-            </b:includable>
-            <b:includable id='threaded_comments' var='post'>
-              <div class='comments widget' id='comments' style='margin-top: 40px;'>
-                <h4>Threaded Comments</h4>
-                <div id='comment-holder'><data:post.commentHtml/></div>
-                <b:include data='post' name='threaded-comment-form'/>
-              </div>
-            </b:includable>
-            <b:includable id='threaded-comment-form' var='post'>
-              <div class='comment-form' style='margin-top: 24px;'>
-                <iframe allowtransparency='true' class='blogger-comment-from-post' expr:height='data:cmtIframeInitialHeight' frameborder='0' id='comment-editor' name='comment-editor' src='' width='100%'/>
-                <data:post.cmtfpIframe/>
-                <script type='text/javascript'> BLOG_CMT_createIframe(&#39; <data:post.appRpcRelayPath/> &#39;); </script>
-              </div>
-            </b:includable>
-          </b:widget>
-        </b:section>
-      </main>
-
-      <!-- Right Column Sidebar -->
-      <aside class='sidebar'>
-        <b:section id='popular-posts-container'>
-          <b:widget id='PopularPosts1' locked='false' title='Popular Posts' type='PopularPosts' version='1'>
-            <b:widget-settings>
-              <b:widget-setting name='numItemsToShow'>3</b:widget-setting>
-              <b:widget-setting name='showThumbnails'>true</b:widget-setting>
-              <b:widget-setting name='showSnippets'>true</b:widget-setting>
-              <b:widget-setting name='timeRange'>LAST_YEAR</b:widget-setting>
-            </b:widget-settings>
-            <b:includable id='main'>
-              <div class='widget'>
-                <h3 class='widget-title'>Popular Content</h3>
-                <div class='popular-list'>
-                  <b:loop values='data:posts' var='post'>
-                    <div style='margin-bottom: 20px;'>
-                      <a expr:href='data:post.href' style='font-weight:600; font-size:15px; color:var(--dark-color); display:block; margin-bottom:4px;'><data:post.title/></a>
-                      <span style='font-size:13px; color:var(--text-muted);'><b:eval expr='data:post.snippet'/></span>
-                    </div>
-                  </b:loop>
-                </div>
-              </div>
-            </b:includable>
-          </b:widget>
-        </b:section>
-
-        <!-- Categories / Labels -->
-        <b:section id='labels-container'>
-          <b:widget id='Label1' locked='false' title='Categories' type='Label' version='1'>
-            <b:includable id='main'>
-              <div class='widget'>
-                <h3 class='widget-title'>Categories</h3>
-                <div style='display:flex; flex-wrap:wrap; gap:8px;'>
-                  <b:loop values='data:labels' var='label'>
-                    <a expr:href='data:label.url' style='padding:6px 12px; background:var(--bg-soft); border-radius:20px; font-size:13px; border:1px solid var(--border-color); font-weight:500;'>
-                      <data:label.name/> (<data:label.count/>)
-                    </a>
-                  </b:loop>
-                </div>
-              </div>
-            </b:includable>
-          </b:widget>
-        </b:section>
-      </aside>
-    </div>
-  </div>
-</b:if>
-'''),
-
-      // Global Footer
-      RawText(r'''
-<footer class='site-footer'>
-  <div class='container footer-grid'>
-    <div class='footer-col-about'>
-      <h3 style='margin: 0 0 16px; font-size:22px;'>HireFlutter™</h3>
-      <p>Providing cutting-edge cross-platform mobile apps, architectural consulting, performance tuning, and clean software setups with state-of-the-art Flutter &amp; Dart engineering patterns.</p>
-      <div class='social-links'>
-        <a aria-label='Visit our Facebook page' class='social-icon' href='https://www.facebook.com/profile.php?id=100080805714776'>FB</a>
-        <a aria-label='Visit our Instagram profile' class='social-icon' href='https://www.instagram.com/antinna.yt/'>IG</a>
-        <a aria-label='Visit our GitHub Organization' class='social-icon' href='https://github.com/antinna'>GH</a>
-      </div>
-    </div>
-    <div class='footer-col-links'>
-      <h4>Quick Links</h4>
-      <ul class='footer-links-list'>
-        <li><a expr:href='data:blog.homepageUrl'>Home</a></li>
-        <li><a expr:href='data:blog.homepageUrl + &quot;p/about-us.html&quot;'>About Us</a></li>
-        <li><a expr:href='data:blog.homepageUrl + &quot;p/contact-us.html&quot;'>Contact Us</a></li>
-        <li><a expr:href='data:blog.homepageUrl + &quot;#services&quot;'>Services</a></li>
-        <li><a expr:href='data:blog.homepageUrl + &quot;#blog&quot;'>Insights</a></li>
-      </ul>
-    </div>
-    <div class='footer-col-links'>
-      <h4>Legal &amp; Support</h4>
-      <ul class='footer-links-list'>
-        <li><a expr:href='data:blog.homepageUrl + &quot;p/privacy-policy.html&quot;'>Privacy Policy</a></li>
-        <li><a expr:href='data:blog.homepageUrl + &quot;p/disclaimer.html&quot;'>Disclaimer</a></li>
-        <li><a expr:href='data:blog.homepageUrl + &quot;p/termandconditions.html&quot;'>Terms &amp; Conditions</a></li>
-      </ul>
-    </div>
-  </div>
-  <div class='container footer-bottom'>
-    <p>&#169; 2026 HireFlutter. All Rights Reserved. Fully optimized for Google AdSense compliance.</p>
-    <p>Empowered by passion and high-end software craftsmanship.</p>
-  </div>
-</footer>
-'''),
-
-      // Dynamic JS for latest posts rendering on homepage
-      RawText(r'''
-<b:if cond='data:view.isHomepage'>
+    BIf(
+      cond: 'data:view.isHomepage',
+      children: [
+        RawText(r'''
   <script>
     const populateLatestPosts = (data) => {
       const entries = data.feed.entry || [];
@@ -1140,15 +1766,82 @@ aside.sidebar {
     }
   </script>
   <script src='/feeds/posts/summary?alt=json-in-script&amp;max-results=3&amp;callback=populateLatestPosts'/>
-</b:if>
-''')
+'''),
+      ],
+    ),
+  ];
+}
+
+class BloggerBody extends Component {
+  const BloggerBody();
+
+  @override
+  Iterable<Component> build() => [
+    // Body conditional class
+    RawText("<b:class cond='data:view.isSingleItem' name='single-item'/>"),
+
+    // Modern Header/Nav component
+    const SiteHeader(),
+
+    // Homepage Layout Block
+    RawText("<b:if cond='data:view.isHomepage'>"),
+    const HeroSection(),
+    const ExpertiseSection(),
+    const HomepageBlogSection(),
+    const ContactSection(),
+    RawText("</b:if>"),
+
+    // Subpages & Error layout Block
+    const Error404Page(),
+    const BlogLayout(),
+
+    // Beautiful Responsive Footer
+    const SiteFooter(),
+
+    // Global Interactive Client Scripts
+    const ClientInteractivityScripts(),
+  ];
+}
+
+// ==========================================================================
+// 4. MAIN RUNTIME GENERATION LOGIC
+// ==========================================================================
+
+void main() {
+  final theme = BloggerTheme(
+    attributes: {
+      'b:layoutsVersion': '3',
+      'b:responsive': 'true',
+      'expr:dir': 'data:blog.languageDirection',
+      'expr:lang': 'data:blog.locale',
+      'xmlns': 'http://www.w3.org/1999/xhtml',
+      'xmlns:b': 'http://www.google.com/2005/gml/b',
+      'xmlns:data': 'http://www.google.com/2005/gml/data',
+      'xmlns:expr': 'http://www.google.com/2005/gml/expr',
+    },
+    head: [
+      const BloggerHead(),
+    ],
+    body: [
+      const BloggerBody(),
     ],
   );
 
   final xml = theme.generate();
 
-  // Write the completed theme XML code directly to local theme.xml
-  final file = File('theme.xml');
-  file.writeAsStringSync(xml);
-  print('Successfully generated theme.xml using blogger_theme!');
+  // Create local build directory and write Blogger Theme XML
+  final buildDir = Directory('build');
+  if (!buildDir.existsSync()) {
+    buildDir.createSync(recursive: true);
+  }
+
+  final outputFile = File('build/blogger_theme.xml');
+  outputFile.writeAsStringSync(xml);
+  print('Successfully compiled blogger_theme programmatically!');
+  print('Theme file compiled to: ${outputFile.path}');
+
+  // Also maintain theme.xml at repo root for release artifact purposes
+  final repoFile = File('theme.xml');
+  repoFile.writeAsStringSync(xml);
+  print('Root theme.xml written!');
 }

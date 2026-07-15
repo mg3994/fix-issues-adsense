@@ -32,7 +32,7 @@ jobs:
       - name: Push into Releases Tab
         uses: ncipollo/release-action@v1
         with:
-          artifacts: "theme.xml"
+          artifacts: "build/blogger_theme.xml"
           tag: "v1.0.${{ github.run_number }}"
           name: "Blogger Theme Release v1.0.${{ github.run_number }}"
           body: "Automated modern Blogger theme release generated using blogger_theme Dart package. Ready for AdSense submission."
