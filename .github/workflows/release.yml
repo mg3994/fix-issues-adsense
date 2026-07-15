@@ -27,12 +27,12 @@ jobs:
         run: dart pub get
 
       - name: Generate Blogger Theme XML
-        run: dart run bin/generate.dart
+        run: dart run bin/main.dart
 
       - name: Push into Releases Tab
         uses: ncipollo/release-action@v1
         with:
-          artifacts: "build/blogger_theme.xml"
+          artifacts: "build/blogger/theme.xml"
           tag: "v1.0.${{ github.run_number }}"
           name: "Blogger Theme Release v1.0.${{ github.run_number }}"
           body: "Automated modern Blogger theme release generated using blogger_theme Dart package. Ready for AdSense submission."
